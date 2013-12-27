@@ -35,13 +35,16 @@ our $TEMPLATE = '/etc/iptables.d';
 sub prefix {
   my $data;
   ( $data = <<'END_OF_PREFIX' ) =~ s/^\s+//gm;
-        *filter
-        :INPUT ACCEPT
+    *filter
+    :INPUT ACCEPT
     :FORWARD ACCEPT
     :OUTPUT ACCEPT
-    :FWR -
-    -A INPUT -j FWR
-    -A FWR -i lo -j ACCEPT
+
+    # Allows all loopback traffic
+    -A INPUT -i lo -j ACCEPT
+
+    # Allow all outbound traffic
+    -A OUTPUT -j ACCEPT
 END_OF_PREFIX
 
   return $data;
@@ -51,11 +54,21 @@ END_OF_PREFIX
 sub suffix {
   my $data;
   ( $data = <<'END_OF_SUFFIX' ) =~ s/^\s+//gm;
-        # Rejects all remaining connections with port-unreachable errors.
+    # Log rejected traffic
+    -A INPUT -m limit --limit 5/min -j LOG --log-prefix "iptables denied: " --log-level 7
 
-        -A FWR -p tcp -m tcp --tcp-flags SYN,RST,ACK SYN -j REJECT --reject-with icmp-port-unreachable
-        -A FWR -p udp -j REJECT --reject-with icmp-port-unreachable
-        COMMIT
+    # Reject all other traffic
+    -A INPUT -j REJECT
+    -A FORWARD -j REJECT
+
+    COMMIT
+
+    *nat
+    :PREROUTING ACCEPT
+    :POSTROUTING ACCEPT
+    :OUTPUT ACCEPT
+
+    COMMIT
 END_OF_SUFFIX
 
   return $data;

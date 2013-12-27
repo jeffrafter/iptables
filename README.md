@@ -56,7 +56,7 @@ To enable port 80, e.g. in an `httpd` cookbook, create the following
 template:
 
     # Port 80 for http
-    -A FWR -p tcp -m tcp --dport 80 -j ACCEPT
+    -A INPUT -p tcp -m tcp --dport 80 -j ACCEPT
 
 This would go in the cookbook,
 `httpd/templates/default/http.erb`. Then to use it in
